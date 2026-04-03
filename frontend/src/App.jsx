@@ -1,121 +1,123 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useMemo, useState } from "react";
+import { medicamentos } from "./data/medicamentos";
+import "./styles.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [busqueda, setBusqueda] = useState("");
+  const [comunaSeleccionada, setComunaSeleccionada] = useState("");
+  const [ordenPrecio, setOrdenPrecio] = useState("asc");
+
+  const comunas = useMemo(() => {
+    return [...new Set(medicamentos.map((item) => item.comuna))].sort();
+  }, []);
+
+  const resultados = useMemo(() => {
+    const texto = busqueda.trim().toLowerCase();
+
+    let filtrados = medicamentos.filter((item) => {
+      const coincideTexto =
+        item.nombre_producto.toLowerCase().includes(texto) ||
+        item.principio_activo.toLowerCase().includes(texto);
+
+      const coincideComuna =
+        comunaSeleccionada === "" || item.comuna === comunaSeleccionada;
+
+      return coincideTexto && coincideComuna;
+    });
+
+    filtrados.sort((a, b) => {
+      return ordenPrecio === "asc" ? a.precio - b.precio : b.precio - a.precio;
+    });
+
+    return filtrados;
+  }, [busqueda, comunaSeleccionada, ordenPrecio]);
+
+  const precioMinimo =
+    resultados.length > 0
+      ? Math.min(...resultados.map((item) => item.precio))
+      : null;
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
+    <div className="app">
+      <header className="hero">
+        <h1>Buscador de remedios</h1>
+        <p>Compara precios por comuna y farmacia en Chile</p>
+      </header>
+
+      <section className="filtros">
+        <input
+          type="text"
+          placeholder="Buscar por producto o principio activo"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+        />
+
+        <select
+          value={comunaSeleccionada}
+          onChange={(e) => setComunaSeleccionada(e.target.value)}
         >
-          Count is {count}
-        </button>
+          <option value="">Todas las comunas</option>
+          {comunas.map((comuna) => (
+            <option key={comuna} value={comuna}>
+              {comuna}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={ordenPrecio}
+          onChange={(e) => setOrdenPrecio(e.target.value)}
+        >
+          <option value="asc">Precio: menor a mayor</option>
+          <option value="desc">Precio: mayor a menor</option>
+        </select>
       </section>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
+      <section className="resumen">
+        <p>
+          <strong>{resultados.length}</strong> resultado(s)
+        </p>
       </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <section className="grid">
+        {resultados.length === 0 ? (
+          <div className="sin-resultados">
+            No se encontraron medicamentos con esos filtros.
+          </div>
+        ) : (
+          resultados.map((item) => {
+            const esMasBarato = item.precio === precioMinimo;
+
+            return (
+              <article
+                key={item.id}
+                className={`card ${esMasBarato ? "card-destacada" : ""}`}
+              >
+                {esMasBarato && <span className="badge">Mejor precio</span>}
+
+                <h2>{item.nombre_producto}</h2>
+
+                <p>
+                  <strong>Principio activo:</strong> {item.principio_activo}
+                </p>
+                <p>
+                  <strong>Dosis:</strong> {item.dosis_mg} mg
+                </p>
+                <p>
+                  <strong>Farmacia:</strong> {item.farmacia}
+                </p>
+                <p>
+                  <strong>Comuna:</strong> {item.comuna}
+                </p>
+                <p className="precio">${item.precio.toLocaleString("es-CL")}</p>
+                <p>
+                  <strong>Fecha:</strong> {item.fecha_precio}
+                </p>
+              </article>
+            );
+          })
+        )}
+      </section>
+    </div>
+  );
 }
-
-export default App

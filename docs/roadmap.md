@@ -17,3 +17,7 @@ disponibilidad, si luego consigues datos
 
 ···Módulo 4: favoritos o historial
 guardar medicamentos consultados
+
+Frontend: React + Vite
+Backend: Node.js + Express
+Base de datos: PostgreSQL
